@@ -71,7 +71,7 @@ if __name__ == "__main__":
         num = commonDocTFIDF.map(lambda x: (x[0],queryDocList[x[1][0]]*x[1][1])).reduceByKey(add)\
                             .map(lambda x: (x[0],x[1]/(norm[x[0]]*norm[queryTerm]))).collect()
             
-        with open('output.txt','w') as f:                
+        with open('queryTermSimOutput.txt','w') as f:                
             for row in sorted(num,key=lambda x:x[1],reverse=True):
                 f.write("%s : %s" % (row[0],row[1]))
                 f.write("\n")
