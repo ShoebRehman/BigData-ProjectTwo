@@ -61,6 +61,12 @@ if __name__ == "__main__":
         
         norm = tfidfArray.flatMapValues(lambda x: x).map(lambda x: (x[0],math.pow(x[1][1],2))).groupByKey().map(lambda x: (x[0],math.sqrt(sum(x[1])))).collectAsMap() #returns norms of all terms
         
+        with open('norms.txt','w') as f:                
+            for row in sorted(norm.keys(),key=lambda x:x[0]):
+                f.write("%s : %s" % (row,norm[row]))
+                f.write("\n")
+                
+        
         tfidfOutput = tfidfArray.flatMapValues(lambda x: x)
                 
         commonDocTFIDF = tfidfOutput.filter(lambda x: x[1][0] in queryDocList.keys())\
@@ -68,13 +74,15 @@ if __name__ == "__main__":
                                          .map(lambda x: (x[0],sorted(x[1],key=lambda y: float(y[0][3:]))))\
                                          .flatMapValues(lambda x: x)
         
-        num = commonDocTFIDF.map(lambda x: (x[0],queryDocList[x[1][0]]*x[1][1])).reduceByKey(add)\
+        num = commonDocTFIDF.filter(lambda x:"disease_" in x[0] and "_disease" in x[0] and not "_disease_" in x[0])\
+                            .map(lambda x: (x[0],queryDocList[x[1][0]]*x[1][1])).reduceByKey(add)\
                             .map(lambda x: (x[0],x[1]/(norm[x[0]]*norm[queryTerm]))).collect()
-            
+                            
         with open('queryTermSimOutput.txt','w') as f:                
             for row in sorted(num,key=lambda x:x[1],reverse=True):
                 f.write("%s : %s" % (row[0],row[1]))
                 f.write("\n")
+                
         '''    
         df = DataFrame(newOutput).T.fillna("")
         df.reindex_axis(sorted(df.columns, key=lambda x: float(x[3:])), axis=1)
