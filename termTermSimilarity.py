@@ -20,10 +20,11 @@ if __name__ == "__main__":
     try:
         
         sc = SparkContext(appName="CosSim")
-        lines = sc.textFile(sys.argv[1], 1)
-        lineCount = lines.filter(lambda line: "gene_" in line or "disease_" in line).count()
-        queryTerm = sys.argv[2]
+        lines = sc.textFile(sys.argv[1], 1) #takes first parameter and creates an RDD based on it
+        lineCount = lines.filter(lambda line: "gene_" in line or "disease_" in line).count() #returns count of lines with gene or disease
+        queryTerm = sys.argv[2] #stores queryTerm into variable
         
+		#intakes format of docid t1...tn and outputs a format of ((T,docid),tfidf))
         tfidfRDD = lines.filter(lambda line: "gene_" in line or "disease_" in line).map(lambda x: (x.split(' ')[0],x.split(' ')[1:]))\
                       .flatMap(lambda (k,v): [(k, x) for x in v])\
                       .map(lambda x: ((x[1], x[0]),float(1))).filter(lambda k: "gene_" in k[0][0] or "disease_" in k[0][0])\
@@ -51,8 +52,8 @@ if __name__ == "__main__":
         tfidfArray = tfidfRDD.map(lambda x: (x[0][0],(x[0][1],x[1])))\
                            .groupByKey().mapValues(list) #gives us (term,{(D,tfidf)})     
                            
-        tfidfArrayOutput = tfidfArray.collect()
-        with open('tfidfs.txt','w') as f:                
+        tfidfArrayOutput = tfidfArray.collect() #collects as list
+        with open('tfidfs.txt','w') as f:#stores the tfidfs into output file for testing purposes                
             for row in sorted(tfidfArrayOutput,key=lambda x:x[0]):
                 f.write("%s : %s" % (row[0],row[1]))
                 f.write("\n")
@@ -61,7 +62,7 @@ if __name__ == "__main__":
         
         norm = tfidfArray.flatMapValues(lambda x: x).map(lambda x: (x[0],math.pow(x[1][1],2))).groupByKey().map(lambda x: (x[0],math.sqrt(sum(x[1])))).collectAsMap() #returns norms of all terms
         
-        with open('norms.txt','w') as f:                
+        with open('norms.txt','w') as f:#rewrites all norms into text file for testing purposes
             for row in sorted(norm.keys(),key=lambda x:x[0]):
                 f.write("%s : %s" % (row,norm[row]))
                 f.write("\n")
@@ -72,18 +73,19 @@ if __name__ == "__main__":
         commonDocTFIDF = tfidfOutput.filter(lambda x: x[1][0] in queryDocList.keys())\
                                          .map(lambda y: y).groupByKey().mapValues(list)\
                                          .map(lambda x: (x[0],sorted(x[1],key=lambda y: float(y[0][3:]))))\
-                                         .flatMapValues(lambda x: x)
+                                         .flatMapValues(lambda x: x) #filters out all of the terms that don't share a common doc with queryTerm
         
         num = commonDocTFIDF.filter(lambda x:"disease_" in x[0] and "_disease" in x[0] and not "_disease_" in x[0])\
                             .map(lambda x: (x[0],queryDocList[x[1][0]]*x[1][1])).reduceByKey(add)\
-                            .map(lambda x: (x[0],x[1]/(norm[x[0]]*norm[queryTerm]))).collect()
+                            .map(lambda x: (x[0],x[1]/(norm[x[0]]*norm[queryTerm]))).collect()#finds the numerator of the query term and every other term, multiples tfidfs and gets the sum of products
+							#multiplies vector magnitudes and divides the numerator with vector magnitudes calculated above (norm)
                             
         with open('queryTermSimOutput.txt','w') as f:                
-            for row in sorted(num,key=lambda x:x[1],reverse=True):
+            for row in sorted(num,key=lambda x:x[1],reverse=True): #writes sorted in desc order of all terms related to queryTerm and by how much
                 f.write("%s : %s" % (row[0],row[1]))
                 f.write("\n")
                 
-        '''    
+        '''#stores tfidfs into dataframe and writes to file    
         df = DataFrame(newOutput).T.fillna("")
         df.reindex_axis(sorted(df.columns, key=lambda x: float(x[3:])), axis=1)
         df.to_csv('output.csv', sep=',')
