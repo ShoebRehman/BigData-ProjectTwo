@@ -83,12 +83,13 @@ if __name__ == "__main__":
             for row in sorted(num,key=lambda x:x[1],reverse=True): #writes sorted in desc order of all terms related to queryTerm and by how much
                 f.write("%s : %s" % (row[0],row[1]))
                 f.write("\n")
-                
-        '''#stores tfidfs into dataframe and writes to file    
-        df = DataFrame(newOutput).T.fillna("")
+        '''        
+        #stores tfidfs into dataframe and writes to file    
+        df = DataFrame(newOutput).T.fillna(0)
         df.reindex_axis(sorted(df.columns, key=lambda x: float(x[3:])), axis=1)
         df.to_csv('output.csv', sep=',')
         '''
+        
         sc.stop()
 
     except ValueError:
