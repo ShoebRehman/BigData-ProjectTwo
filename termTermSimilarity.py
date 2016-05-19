@@ -34,10 +34,9 @@ if __name__ == "__main__":
                       .map(lambda x: ((x[0],sum(int(v) for name,v in x[1])),x[1]))\
                       .flatMapValues(lambda x: x)\
                       .map(lambda x: ((x[1][0],x[0][0]),float(x[1][1]/x[0][1])))\
-                      .map(lambda b: (b[0][0],(b[0][1],b[1])))\
-                      .groupByKey().mapValues(list)\
-                      .flatMap(lambda (k,v): [(k, (x,len(v))) for x in v])\
-                      .map(lambda x: ((x[0],x[1][0][0]), x[1][0][1]*math.log(float(lineCount/x[1][1]),math.e)))\
+                      .map(lambda b: (b[0][0],(b[0][1],b[1]))).groupByKey().mapValues(list)\
+                      .flatMap(lambda (k,v): [((k,x),len(v)) for x in v])\
+                      .map(lambda x: ((x[0][0],x[0][1][0]), x[0][1][1]*math.log(float(lineCount/x[1]),math.e)))\
 
         tfidfMap = tfidfRDD.collectAsMap() #collects RDD as a map. format for this is ((term,docid),tfidf)
         
